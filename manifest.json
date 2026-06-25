@@ -1,0 +1,17 @@
+{
+  "latest": "2.3.5",
+  "devices": {
+    "default": {
+      "version": "2.3.5",
+      "url": "https://raw.githubusercontent.com/termic1/geysersteam-firmware/main/firmware-round/round_remote.bin"
+    },
+    "9C139EAC4658": {
+      "version": "2.3.5",
+      "url": "https://raw.githubusercontent.com/termic1/geysersteam-firmware/main/firmware-round/round_special.bin"
+    },
+    "1CDBD4456EA0": {
+      "version": "2.3.5",
+      "url": "https://raw.githubusercontent.com/termic1/geysersteam-firmware/main/firmware-round/round_special.bin"
+    }
+  }
+}
