@@ -1,1 +1,43 @@
+{
+  "gpio": {
+    "led_red": 17,
+    "led_green": 27,
+    "led_blue": 22,
+
+    "reset_pin": 5,
+    "boot_pin": 6,
+    "power_enable": 23
+  },
+
+  "timing": {
+    "reset_pulse_ms": 120,
+    "boot_hold_ms": 50,
+    "power_on_delay_ms": 300,
+    "post_flash_delay_ms": 500
+  },
+
+  "serial": {
+    "default_baud": 115200,
+    "open_timeout_ms": 2000,
+    "retry_count": 2
+  },
+
+  "power": {
+    "auto_power_on": true,
+    "auto_power_off": true,
+    "power_off_delay_ms": 200
+  },
+
+  "behavior": {
+    "led_success": "blue",
+    "led_failure": "red",
+    "led_flashing": "green",
+    "require_stable_usb": true
+  },
+
+  "metadata": {
+    "profile": "settings_A",
+    "description": "Default programmer hardware settings"
+  }
+}
 
