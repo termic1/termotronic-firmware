@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Termotronic Programmer</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <header>
+        <h1>Termotronic Programmer</h1>
+        <p class="subtitle">ESP32‑C3 Manufacturing Flasher</p>
+    </header>
+
+    <section class="controls">
+        <h2>Controls</h2>
+
+        <div class="control-row">
+            <label for="firmwareSelect">Firmware Version:</label>
+            <select id="firmwareSelect"></select>
+            <button onclick="setFirmware()">Apply</button>
+        </div>
+
+        <div class="control-row">
+            <button onclick="syncRepo()">Sync Repository</button>
+        </div>
+    </section>
+
+    <section class="status">
+        <h2>Status</h2>
+        <div id="statusBox">Waiting for device...</div>
+    </section>
+
+    <section class="logs">
+        <h2>Live Logs</h2>
+        <div id="logBox" class="log-box"></div>
+    </section>
+
+    <footer>
+        <p>Termotronic Firmware Programmer — Unified System</p>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
