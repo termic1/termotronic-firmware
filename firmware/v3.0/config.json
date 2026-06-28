@@ -1,0 +1,17 @@
+{
+  "baud": 460800,
+  "erase": "yes",
+  "offset": "0x10000",
+  "flash_mode": "dio",
+  "flash_freq": "80m",
+  "flash_size": "4MB",
+
+  "programmer_settings": "programmer/settings_A.json",
+  "programmer_rules": "programmer/rules_A.json",
+
+  "rules": {
+    "min_voltage": 4.5,
+    "max_temperature": 60,
+    "require_jig": true
+  }
+}
