@@ -1,18 +1,35 @@
 {
   "versions": {
     "v1.0": {
-      "path": "firmware/v1.0/firmware.bin",
+      "files": {
+        "bootloader": "firmware/v1.0/bootloader.bin",
+        "partitions": "firmware/v1.0/partitions.bin",
+        "firmware": "firmware/v1.0/firmware.bin"
+      },
       "config": "firmware/v1.0/config.json"
     },
-    "v1.1": {
-      "path": "firmware/v1.1/firmware.bin",
-      "config": "firmware/v1.1/config.json"
-    },
     "v2.0": {
-      "path": "firmware/v2.0/firmware.bin",
+      "files": {
+        "bootloader": "firmware/v2.0/bootloader.bin",
+        "partitions": "firmware/v2.0/partitions.bin",
+        "firmware": "firmware/v2.0/firmware.bin"
+      },
       "config": "firmware/v2.0/config.json"
+    },
+    "v3.0": {
+      "files": {
+        "bootloader": "firmware/v3.0/bootloader.bin",
+        "partitions": "firmware/v3.0/partitions.bin",
+        "firmware": "firmware/v3.0/firmware.bin"
+      },
+      "config": "firmware/v3.0/config.json"
     }
   },
+  
+  "common": {
+    "boot_app0": "common/boot_app0.bin"
+  },
+  
   "programmer": {
     "settings": "programmer/settings.json",
     "rules": "programmer/rules.json"
