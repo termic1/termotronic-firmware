@@ -1,17 +1,35 @@
 {
-  "baud": 460800,
-  "erase": "yes",
-  "offset": "0x10000",
-  "flash_mode": "dio",
-  "flash_freq": "80m",
-  "flash_size": "4MB",
+  "flash": {
+    "baud": 460800,
+    "erase": "yes",
+    "offset": "0x10000",
+    "flash_mode": "dio",
+    "flash_freq": "80m",
+    "flash_size": "4MB"
+  },
 
-  "programmer_settings": "programmer/settings_A.json",
-  "programmer_rules": "programmer/rules_A.json",
+  "programmer_profiles": {
+    "settings": "programmer/settings_A.json",
+    "rules": "programmer/rules_A.json"
+  },
 
-  "rules": {
+  "safety_rules": {
     "min_voltage": 4.5,
     "max_temperature": 60,
-    "require_jig": true
+    "require_jig": true,
+    "max_retries": 2
+  },
+
+  "hardware": {
+    "requires_reset_pulse": true,
+    "reset_pulse_ms": 120,
+    "power_on_delay_ms": 300
+  },
+
+  "metadata": {
+    "version": "v3.0",
+    "description": "Firmware description here",
+    "hash": "sha256-or-git-hash-here"
   }
 }
+
