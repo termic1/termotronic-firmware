@@ -31,7 +31,7 @@ WEB_PORT = 8080
 # ------------------------------------------------------------
 # mDNS service name
 # ------------------------------------------------------------
-MDNS_NAME = "termotronic.local"
+MDNS_NAME = "programador.local"
 MDNS_SERVICE = "Termotronic Programmer"
 
 
