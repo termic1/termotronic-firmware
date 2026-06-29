@@ -116,13 +116,13 @@ def build_esptool_cmd(bootloader, partitions, boot_app0, firmware, fw_config, de
 
     cmd += [
         "write_flash", "-z",
-        "0x0", bootloader,
-        "0x8000", partitions,
-        "0xe000", boot_app0,
-        offset, firmware,
         "--flash_mode", flash_mode,
         "--flash_freq", flash_freq,
         "--flash_size", flash_size,
+        "0x0", bootloader,
+        "0x8000", partitions,
+        "0xe000", boot_app0,
+        offset, firmware 
     ]
 
     return cmd
