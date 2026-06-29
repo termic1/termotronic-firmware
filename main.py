@@ -1,194 +1,235 @@
 import os
-import esptool
-import subprocess
+import time
+import threading
 import json
+import socket
+from datetime import date
 
+from flask import Flask, jsonify, render_template, Response
+from zeroconf import ServiceInfo, Zeroconf
+
+from flasher import flash_device, all_off
+from storage import load_state, save_state, rotate_month
 from config import LED_RED, LED_GREEN, LED_BLUE
 
 
 # ============================================================
-# GPIO / LED Helpers
+# PATHS — Unified Repo Structure
 # ============================================================
 
-def gpio_write(pin, value):
-    subprocess.call(f"gpio write {pin} {value}", shell=True)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = BASE_DIR
 
-
-def gpio_on(pin):
-    gpio_write(pin, 1)
-
-
-def gpio_off(pin):
-    gpio_write(pin, 0)
-
-
-def all_off():
-    gpio_off(LED_RED)
-    gpio_off(LED_GREEN)
-    gpio_off(LED_BLUE)
-
-
-def apply_led_behavior(settings, state):
-    """
-    state: "flashing", "success", "failure"
-    settings['behavior'] defines which LED to use for each state.
-    """
-    behavior = settings.get("behavior", {})
-    led_map = {
-        "success": behavior.get("led_success", "blue"),
-        "failure": behavior.get("led_failure", "red"),
-        "flashing": behavior.get("led_flashing", "green"),
-    }
-
-    # Turn all off first
-    all_off()
-
-    led = led_map.get(state)
-    if led == "red":
-        gpio_on(LED_RED)
-    elif led == "green":
-        gpio_on(LED_GREEN)
-    elif led == "blue":
-        gpio_on(LED_BLUE)
+MANIFEST = os.path.join(REPO_ROOT, "manifest.json")
+FIRMWARE_DIR = os.path.join(REPO_ROOT, "firmware")
+COMMON_DIR = os.path.join(REPO_ROOT, "common")
+PROGRAMMER_DIR = os.path.join(REPO_ROOT, "programmer")
+WEB_DIR = os.path.join(REPO_ROOT, "web")
 
 
 # ============================================================
-# Pre‑Flash Checks (Rules)
+# Helpers
 # ============================================================
 
-def prechecks_ok(rules, log):
-    env = rules.get("environment", {})
-    safety = rules.get("safety", {})
-    logging_cfg = rules.get("logging", {})
+def load_manifest():
+    with open(MANIFEST) as f:
+        return json.load(f)
 
-    if logging_cfg.get("log_prechecks", True):
-        log("Running pre-flash checks (environment, jig, usb)...")
+live_log = []
 
-    # TODO: replace these placeholders with real sensor readings
-    voltage_ok = True
-    temp_ok = True
-    jig_ok = True
-    usb_ok = True
-
-    if safety.get("block_if_voltage_low", True) and not voltage_ok:
-        log("Blocked: voltage too low")
-        return False
-
-    if safety.get("block_if_temperature_high", True) and not temp_ok:
-        log("Blocked: temperature too high")
-        return False
-
-    if safety.get("block_if_jig_missing", True) and not jig_ok:
-        log("Blocked: jig missing")
-        return False
-
-    if safety.get("block_if_usb_unstable", True) and not usb_ok:
-        log("Blocked: USB unstable")
-        return False
-
-    return True
+def add_log(msg):
+    print(msg)
+    live_log.append(msg)
 
 
 # ============================================================
-# Esptool Command Builder
+# Flask Web Server
 # ============================================================
 
-def build_esptool_cmd(bootloader, partitions, boot_app0, firmware, fw_config, devPORT):
-    flash = fw_config.get("flash", {})
+app = Flask(
+    __name__,
+    template_folder=os.path.join(WEB_DIR, "templates"),
+    static_folder=os.path.join(WEB_DIR, "static")
+)
 
-    baud = str(flash.get("baud", 460800))
-    erase = flash.get("erase", "yes")
-    offset = flash.get("offset", "0x10000")
-    flash_mode = flash.get("flash_mode", "dio")
-    flash_freq = flash.get("flash_freq", "80m")
-    flash_size = flash.get("flash_size", "4MB")
+@app.route("/")
+def index():
+    return render_template("index.html")
 
-    cmd = [
-        "--chip", "esp32c3",
-        "--port", devPORT,
-        "--baud", baud,
-        "--before", "default_reset",
-        "--after", "hard_reset",
-    ]
+@app.route("/logs")
+def logs():
+    datos, cuenta = load_state()
+    return jsonify({"current": datos, "history": cuenta})
 
-    if erase == "yes":
-        cmd += ["erase_flash"]
+@app.route("/live")
+def live():
+    return jsonify(live_log[-50:])
 
-    cmd += [
-        "write_flash", "-z",
-        "0x0", bootloader,
-        "0x8000", partitions,
-        "0xe000", boot_app0,
-        offset, firmware,
-        "--flash_mode", flash_mode,
-        "--flash_freq", flash_freq,
-        "--flash_size", flash_size,
-    ]
+@app.route("/stream")
+def stream():
+    def event_stream():
+        last = 0
+        while True:
+            if len(live_log) > last:
+                for line in live_log[last:]:
+                    yield f"data: {line}\n\n"
+                last = len(live_log)
+            time.sleep(0.5)
+    return Response(event_stream(), mimetype="text/event-stream")
 
-    return cmd
+@app.route("/firmware_list")
+def firmware_list():
+    manifest = load_manifest()
+    return jsonify(list(manifest["versions"].keys()))
+
+@app.route("/set_firmware/<version>")
+def set_firmware(version):
+    datos, cuenta = load_state()
+    manifest = load_manifest()
+
+    if version not in manifest["versions"]:
+        return jsonify({"error": "Version not found"}), 404
+
+    datos["CURRENT_FIRMWARE"] = version
+    save_state(datos, cuenta)
+    add_log(f"Firmware version set to {version}")
+
+    return jsonify({"status": "ok", "version": version})
+
+@app.route("/sync_repo")
+def sync_repo():
+    os.system(f"cd {REPO_ROOT} && git pull")
+    add_log("Repository synced from GitHub")
+    return "OK"
 
 
 # ============================================================
-# Main Flash Function
+# mDNS
 # ============================================================
 
-def flash_device(
-    bootloader,
-    partitions,
-    boot_app0,
-    firmware,
-    fw_config,
-    prog_settings,
-    prog_rules,
-    devPORT,
-    log,
-):
-    """
-    bootloader, partitions, boot_app0, firmware:
-        Full paths to binary files.
+def start_mdns():
+    hostname = "termotronic.local."
+    ip = socket.gethostbyname(socket.gethostname())
 
-    fw_config:
-        Dict from firmware/vX.Y/config.json
+    info = ServiceInfo(
+        "_http._tcp.local.",
+        "Termotronic Programmer._http._tcp.local.",
+        addresses=[socket.inet_aton(ip)],
+        port=8080,
+        properties={},
+        server=hostname,
+    )
 
-    prog_settings:
-        Dict from programmer/settings_*.json
+    zeroconf = Zeroconf()
+    zeroconf.register_service(info)
+    add_log("mDNS active: http://termotronic.local")
 
-    prog_rules:
-        Dict from programmer/rules_*.json
 
-    devPORT:
-        e.g. "ttyACM0" (without /dev/)
+# ============================================================
+# USB Monitor
+# ============================================================
 
-    log:
-        Function(msg) -> None
-    """
+def get_usb():
+    return os.popen("lsusb").read().strip().split("\n")
 
-    devPORT = "/dev/" + devPORT
+def get_dev():
+    return os.listdir("/dev")
 
-    # LED: flashing state
-    apply_led_behavior(prog_settings, "flashing")
-    log(f"Starting flash on {devPORT}")
-    log(f"Bootloader: {bootloader}")
-    log(f"Partitions: {partitions}")
-    log(f"Boot_app0: {boot_app0}")
-    log(f"Firmware: {firmware}")
+def diff(old, new):
+    return [x for x in new if x not in old], [x for x in old if x not in new]
 
-    # Prechecks based on programmer rules
-    if not prechecks_ok(prog_rules, log):
-        apply_led_behavior(prog_settings, "failure")
-        return False
 
-    # Build esptool command
-    cmd = build_esptool_cmd(bootloader, partitions, boot_app0, firmware, fw_config, devPORT)
-    log(f"Esptool command: {cmd}")
+def monitor_loop():
+    datos, cuenta = load_state()
+    old_usb = get_usb()
+    old_dev = get_dev()
+    last_month = datos["CURRENT_MONTH"]
 
-    try:
-        esptool.main(cmd)
-        apply_led_behavior(prog_settings, "success")
-        log("Flash SUCCESS")
-        return True
+    while True:
+        time.sleep(1)
 
-    except Exception as e:
-        apply_led_behavior(prog_settings, "failure")
-        log(f"Flash FAILED: {e}")
-        return False
+        # Month rotation
+        current_month = date.today().strftime("%b").lower()
+        if current_month != last_month:
+            rotate_month(datos, cuenta)
+            last_month = datos["CURRENT_MONTH"]
+
+        usb_now = get_usb()
+        dev_now = get_dev()
+
+        usb_added, usb_removed = diff(old_usb, usb_now)
+        dev_added, dev_removed = diff(old_dev, dev_now)
+
+        # Device added
+        for dev in dev_added:
+            if dev.startswith("ttyACM"):
+                add_log(f"Detected device: {dev}")
+
+                manifest = load_manifest()
+                fw = datos["CURRENT_FIRMWARE"]
+
+                if fw not in manifest["versions"]:
+                    add_log(f"Firmware {fw} not found in manifest")
+                    continue
+
+                # Load version-specific files
+                files = manifest["versions"][fw]["files"]
+                bootloader = os.path.join(REPO_ROOT, files["bootloader"])
+                partitions = os.path.join(REPO_ROOT, files["partitions"])
+                firmware = os.path.join(REPO_ROOT, files["firmware"])
+
+                # Load common boot_app0
+                boot_app0 = os.path.join(REPO_ROOT, manifest["common"]["boot_app0"])
+
+                # Load version-specific config.json
+                config_path = os.path.join(REPO_ROOT, manifest["versions"][fw]["config"])
+                fw_config = json.load(open(config_path))
+
+                # Load programmer profiles
+                prog_settings_path = os.path.join(REPO_ROOT, fw_config["programmer_profiles"]["settings"])
+                prog_rules_path = os.path.join(REPO_ROOT, fw_config["programmer_profiles"]["rules"])
+
+                prog_settings = json.load(open(prog_settings_path))
+                prog_rules = json.load(open(prog_rules_path))
+
+                ok = flash_device(
+                    bootloader,
+                    partitions,
+                    boot_app0,
+                    firmware,
+                    fw_config,
+                    prog_settings,
+                    prog_rules,
+                    dev,
+                    add_log
+                )
+
+                if ok:
+                    datos["CURRENT_MONTH_PO"] = str(int(datos["CURRENT_MONTH_PO"]) + 1)
+                    add_log("Flash SUCCESS")
+                else:
+                    datos["CURRENT_MONTH_NE"] = str(int(datos["CURRENT_MONTH_NE"]) + 1)
+                    add_log("Flash FAILED")
+
+                save_state(datos, cuenta)
+
+        # Device removed
+        for dev in dev_removed:
+            if dev.startswith("ttyACM"):
+                all_off()
+                add_log(f"Device removed: {dev}")
+
+        old_usb = usb_now
+        old_dev = dev_now
+
+
+# ============================================================
+# Start System
+# ============================================================
+
+if __name__ == "__main__":
+    threading.Thread(target=monitor_loop, daemon=True).start()
+    threading.Thread(target=start_mdns, daemon=True).start()
+
+    add_log("Termotronic Programmer Started")
+    app.run(host="0.0.0.0", port=8080)
