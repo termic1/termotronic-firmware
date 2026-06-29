@@ -1,8 +1,8 @@
 {
   "gpio": {
-    "led_red": 17,
-    "led_green": 27,
-    "led_blue": 22,
+    "led_red": 13,
+    "led_green": 15,
+    "led_blue": 16,
 
     "reset_pin": 5,
     "boot_pin": 6,
@@ -17,7 +17,7 @@
   },
 
   "serial": {
-    "default_baud": 115200,
+    "default_baud": 921600,
     "open_timeout_ms": 2000,
     "retry_count": 2
   },
