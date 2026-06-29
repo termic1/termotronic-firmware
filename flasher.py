@@ -103,13 +103,16 @@ def build_esptool_cmd(bootloader, partitions, boot_app0, firmware, fw_config, de
     flash_freq = flash.get("flash_freq", "80m")
     flash_size = flash.get("flash_size", "4MB")
 
+    chip = fw_config.get("chip", "esp32c3")
+
     cmd = [
-        "--chip", "esp32c3",
+        "--chip", chip,
         "--port", devPORT,
         "--baud", baud,
         "--before", "default_reset",
         "--after", "hard_reset",
     ]
+
 
     if erase == "yes":
         cmd += ["erase_flash"]
