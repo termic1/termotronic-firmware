@@ -1,35 +1,35 @@
 {
-  "flash": {
-    "baud": 460800,
-    "erase": "yes",
-    "offset": "0x10000",
-    "flash_mode": "dio",
-    "flash_freq": "80m",
-    "flash_size": "4MB"
-  },
+    "chip": "esp32c3",
 
-  "programmer_profiles": {
-    "settings": "programmer/settings_A.json",
-    "rules": "programmer/rules_A.json"
-  },
+    "flash": {
+        "baud": 460800,
+        "erase": "yes",
+        "offset": "0x10000",
+        "flash_mode": "dio",
+        "flash_freq": "80m",
+        "flash_size": "4MB"
+    },
 
-  "safety_rules": {
-    "min_voltage": 4.5,
-    "max_temperature": 60,
-    "require_jig": true,
-    "max_retries": 2
-  },
+    "programmer_profiles": {
+        "settings": "programmer/settings_A.json",
+        "rules": "programmer/rules_A.json"
+    },
 
-  "hardware": {
-    "requires_reset_pulse": true,
-    "reset_pulse_ms": 120,
-    "power_on_delay_ms": 300
-  },
+    "safety_rules": {
+        "min_voltage": 4.5,
+        "max_temperature": 60,
+        "require_jig": true,
+        "max_retries": 3
+    },
 
-  "metadata": {
-    "version": "v3.0",
-    "description": "Firmware description here",
-    "hash": "sha256-or-git-hash-here"
-  }
+    "hardware": {
+        "reset_pulse_ms": 80,
+        "power_on_delay_ms": 200
+    },
+
+    "metadata": {
+        "version": "v1.0",
+        "description": "ESP32‑C3 production firmware",
+        "hash": "abc123"
+    }
 }
-
