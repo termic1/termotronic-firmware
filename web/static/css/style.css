@@ -79,3 +79,24 @@ canvas {
     margin-top: 10px;
 }
 
+.header-with-logo {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 20px;
+}
+
+.logo {
+    height: 60px;
+}
+
+.title-block h1 {
+    margin: 0;
+    font-size: 28px;
+}
+
+.title-block .subtitle {
+    margin: 0;
+    font-size: 14px;
+    color: #777;
+}
