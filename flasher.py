@@ -4,8 +4,40 @@ import sys
 import json
 import traceback
 import esptool
+import subprocess
+
+# ---------------------------------------------------------
+# IMPORT LED PINS FROM config.py (single source of truth)
+# ---------------------------------------------------------
+try:
+    from config import LED_RED, LED_GREEN, LED_BLUE
+except Exception as e:
+    print("[ERROR] Cannot import LED pins from config.py")
+    print(e)
+    sys.exit(1)
 
 
+# ---------------------------------------------------------
+# GPIO Helpers
+# ---------------------------------------------------------
+def gpio_write(pin, value):
+    subprocess.call(f"gpio write {pin} {value}", shell=True)
+
+def led_on(pin):
+    gpio_write(pin, 1)
+
+def led_off(pin):
+    gpio_write(pin, 0)
+
+def leds_all_off():
+    led_off(LED_RED)
+    led_off(LED_GREEN)
+    led_off(LED_BLUE)
+
+
+# ---------------------------------------------------------
+# JSON Loader
+# ---------------------------------------------------------
 def load_json(path):
     if not os.path.exists(path):
         print(f"[ERROR] JSON file not found: {path}")
@@ -19,54 +51,30 @@ def load_json(path):
         sys.exit(1)
 
 
-def print_header(title):
-    print("\n" + "=" * 60)
-    print(title)
-    print("=" * 60 + "\n")
-
-
+# ---------------------------------------------------------
+# ESPLTOOL Runner
+# ---------------------------------------------------------
 def run_esptool(cmd):
     print(f"[CMD] esptool.py {' '.join(cmd)}")
     try:
         esptool.main(cmd)
     except SystemExit:
-        # esptool uses SystemExit internally; ignore normal exit
         pass
     except Exception as e:
         print("[ERROR] esptool failed:")
         print(e)
         traceback.print_exc()
-        sys.exit(1)
+        raise
 
 
-def validate_settings(settings):
-    required = ["chip", "erase", "flash", "memory", "write_layout", "reset"]
-    for key in required:
-        if key not in settings:
-            print(f"[ERROR] Missing required key in programmer settings: {key}")
-            sys.exit(1)
-
-    if "enabled" not in settings["erase"]:
-        print("[ERROR] erase.enabled missing")
-        sys.exit(1)
-
-    flash_keys = ["baud", "mode", "freq", "size"]
-    for fk in flash_keys:
-        if fk not in settings["flash"]:
-            print(f"[ERROR] flash.{fk} missing")
-            sys.exit(1)
-
-    if not isinstance(settings["write_layout"], list):
-        print("[ERROR] write_layout must be a list")
-        sys.exit(1)
-
-
+# ---------------------------------------------------------
+# Command Builders
+# ---------------------------------------------------------
 def build_erase_cmd(settings):
     return [
         "--chip", settings["chip"],
         "erase_flash"
     ]
-
 
 def build_write_cmd(settings, firmware_folder):
     flash = settings["flash"]
@@ -95,47 +103,8 @@ def build_write_cmd(settings, firmware_folder):
     return cmd
 
 
+# ---------------------------------------------------------
+# MAIN FLASHER
+# ---------------------------------------------------------
 def main():
-    print_header("THERMOHEAT UNIVERSAL ESP FLASHER")
-
-    if len(sys.argv) < 3:
-        print("Usage:")
-        print("  flasher.py <programmer_settings.json> <firmware_folder>")
-        sys.exit(1)
-
-    programmer_settings_path = sys.argv[1]
-    firmware_folder = sys.argv[2]
-
-    print(f"[INFO] Loading programmer settings: {programmer_settings_path}")
-    settings = load_json(programmer_settings_path)
-    validate_settings(settings)
-
-    chip = settings["chip"]
-    print(f"[INFO] Target chip: {chip}")
-
-    # PSRAM info
-    psram = settings["memory"]["psram"]
-    if psram["supported"]:
-        print(f"[INFO] PSRAM: {psram['type']} @ {psram.get('speed', 'N/A')}")
-    else:
-        print("[INFO] PSRAM: Not supported")
-
-    # ERASE FLASH
-    if settings["erase"]["enabled"]:
-        print_header("ERASE FLASH")
-        erase_cmd = build_erase_cmd(settings)
-        run_esptool(erase_cmd)
-    else:
-        print("[INFO] Erase disabled in settings")
-
-    # WRITE FLASH
-    print_header("WRITE FLASH")
-    write_cmd = build_write_cmd(settings, firmware_folder)
-    run_esptool(write_cmd)
-
-    print_header("FLASHING COMPLETE")
-    print("[SUCCESS] Device flashed successfully!")
-
-
-if __name__ == "__main__":
-    main()
+    print("\
