@@ -8,9 +8,12 @@
 </head>
 
 <body>
-    <header>
-        <h1>Termotronic Programmer</h1>
-        <p class="subtitle">ESP Manufacturing Flasher</p>
+    <header class="header-with-logo">
+        <img src="/static/images/logo.png" class="logo">
+        <div class="title-block">
+            <h1>Termotronic Programmer</h1>
+            <p class="subtitle">ESP Manufacturing Flasher</p>
+        </div>
     </header>
 
     <section class="controls">
@@ -42,8 +45,10 @@
         <h3>Per-Version Lifetime</h3>
         <div id="versionStatsBox"></div>
         <canvas id="versionChart" width="400" height="200"></canvas>
-    </section>
 
+        <!-- Hidden timestamp container for Chart.js -->
+        <div id="eventTimestamps" style="display:none;"></div>
+    </section>
 
     <section class="status">
         <h2>Status</h2>
