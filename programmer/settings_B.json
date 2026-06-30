@@ -1,0 +1,36 @@
+{
+    "chip": "esp32s3",
+
+    "erase": {
+        "enabled": true
+    },
+
+    "flash": {
+        "baud": 460800,
+        "mode": "qio",
+        "freq": "80m",
+        "size": "8MB"
+    },
+
+    "memory": {
+        "psram": {
+            "supported": true,
+            "type": "opi",
+            "speed": "120m",
+            "vendor": "AP_Manufacturer"
+        }
+    },
+
+    "write_layout": [
+        { "address": "0x0",        "file": "bootloader.bin" },
+        { "address": "0x8000",     "file": "partitions.bin" },
+        { "address": "0xe000",     "file": "boot_app0.bin" },
+        { "address": "0x10000",    "file": "firmware.bin" },
+        { "address": "0x2d0000",   "file": "app0.bin" }
+    ],
+
+    "reset": {
+        "before": "usb_reset",
+        "after": "hard_reset"
+    }
+}
