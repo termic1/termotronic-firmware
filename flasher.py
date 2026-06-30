@@ -1,197 +1,141 @@
+#!/usr/bin/env python3
 import os
-import esptool
-import subprocess
+import sys
 import json
-
-from config import LED_RED, LED_GREEN, LED_BLUE
-
-
-# ============================================================
-# GPIO / LED Helpers
-# ============================================================
-
-def gpio_write(pin, value):
-    subprocess.call(f"gpio write {pin} {value}", shell=True)
+import traceback
+import esptool
 
 
-def gpio_on(pin):
-    gpio_write(pin, 1)
+def load_json(path):
+    if not os.path.exists(path):
+        print(f"[ERROR] JSON file not found: {path}")
+        sys.exit(1)
+    try:
+        with open(path, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"[ERROR] Failed to parse JSON: {path}")
+        print(e)
+        sys.exit(1)
 
 
-def gpio_off(pin):
-    gpio_write(pin, 0)
+def print_header(title):
+    print("\n" + "=" * 60)
+    print(title)
+    print("=" * 60 + "\n")
 
 
-def all_off():
-    gpio_off(LED_RED)
-    gpio_off(LED_GREEN)
-    gpio_off(LED_BLUE)
+def run_esptool(cmd):
+    print(f"[CMD] esptool.py {' '.join(cmd)}")
+    try:
+        esptool.main(cmd)
+    except SystemExit:
+        # esptool uses SystemExit internally; ignore normal exit
+        pass
+    except Exception as e:
+        print("[ERROR] esptool failed:")
+        print(e)
+        traceback.print_exc()
+        sys.exit(1)
 
 
-def apply_led_behavior(settings, state):
-    """
-    state: "flashing", "success", "failure"
-    settings['behavior'] defines which LED to use for each state.
-    """
-    behavior = settings.get("behavior", {})
-    led_map = {
-        "success": behavior.get("led_success", "blue"),
-        "failure": behavior.get("led_failure", "red"),
-        "flashing": behavior.get("led_flashing", "green"),
-    }
+def validate_settings(settings):
+    required = ["chip", "erase", "flash", "memory", "write_layout", "reset"]
+    for key in required:
+        if key not in settings:
+            print(f"[ERROR] Missing required key in programmer settings: {key}")
+            sys.exit(1)
 
-    # Turn all off first
-    all_off()
+    if "enabled" not in settings["erase"]:
+        print("[ERROR] erase.enabled missing")
+        sys.exit(1)
 
-    led = led_map.get(state)
-    if led == "red":
-        gpio_on(LED_RED)
-    elif led == "green":
-        gpio_on(LED_GREEN)
-    elif led == "blue":
-        gpio_on(LED_BLUE)
+    flash_keys = ["baud", "mode", "freq", "size"]
+    for fk in flash_keys:
+        if fk not in settings["flash"]:
+            print(f"[ERROR] flash.{fk} missing")
+            sys.exit(1)
+
+    if not isinstance(settings["write_layout"], list):
+        print("[ERROR] write_layout must be a list")
+        sys.exit(1)
 
 
-# ============================================================
-# Pre‑Flash Checks (Rules)
-# ============================================================
-
-def prechecks_ok(rules, log):
-    env = rules.get("environment", {})
-    safety = rules.get("safety", {})
-    logging_cfg = rules.get("logging", {})
-
-    if logging_cfg.get("log_prechecks", True):
-        log("Running pre-flash checks (environment, jig, usb)...")
-
-    # TODO: replace these placeholders with real sensor readings
-    voltage_ok = True
-    temp_ok = True
-    jig_ok = True
-    usb_ok = True
-
-    if safety.get("block_if_voltage_low", True) and not voltage_ok:
-        log("Blocked: voltage too low")
-        return False
-
-    if safety.get("block_if_temperature_high", True) and not temp_ok:
-        log("Blocked: temperature too high")
-        return False
-
-    if safety.get("block_if_jig_missing", True) and not jig_ok:
-        log("Blocked: jig missing")
-        return False
-
-    if safety.get("block_if_usb_unstable", True) and not usb_ok:
-        log("Blocked: USB unstable")
-        return False
-
-    return True
+def build_erase_cmd(settings):
+    return [
+        "--chip", settings["chip"],
+        "erase_flash"
+    ]
 
 
-# ============================================================
-# Esptool Command Builder
-# ============================================================
-
-def build_esptool_cmd(bootloader, partitions, boot_app0, firmware, fw_config, devPORT):
-    flash = fw_config.get("flash", {})
-
-    baud = str(flash.get("baud", 460800))
-    erase = flash.get("erase", "yes")
-    offset = flash.get("offset", "0x10000")
-    flash_mode = flash.get("flash_mode", "dio")
-    flash_freq = flash.get("flash_freq", "80m")
-    flash_size = flash.get("flash_size", "4MB")
-
-    chip = fw_config.get("chip", "esp32c3")
+def build_write_cmd(settings, firmware_folder):
+    flash = settings["flash"]
 
     cmd = [
-        "--chip", chip,
-        "--port", devPORT,
-        "--baud", baud,
-        "--before", "default_reset",
-        "--after", "hard_reset",
+        "--chip", settings["chip"],
+        "--baud", str(flash["baud"]),
+        "--flash_mode", flash["mode"],
+        "--flash_freq", flash["freq"],
+        "--flash_size", flash["size"],
+        "write_flash",
+        "-z"
     ]
 
+    for entry in settings["write_layout"]:
+        address = entry["address"]
+        file_path = os.path.join(firmware_folder, entry["file"])
 
-    if erase == "yes":
-        cmd += ["erase_flash"]
+        if not os.path.exists(file_path):
+            print(f"[ERROR] Firmware file missing: {file_path}")
+            sys.exit(1)
 
-    cmd += [
-        "write_flash", "-z",
-        "--flash_mode", flash_mode,
-        "--flash_freq", flash_freq,
-        "--flash_size", flash_size,
-        "0x0", bootloader,
-        "0x8000", partitions,
-        "0xe000", boot_app0,
-        offset, firmware 
-    ]
+        cmd.append(address)
+        cmd.append(file_path)
 
     return cmd
 
 
-# ============================================================
-# Main Flash Function
-# ============================================================
+def main():
+    print_header("THERMOHEAT UNIVERSAL ESP FLASHER")
 
-def flash_device(
-    bootloader,
-    partitions,
-    boot_app0,
-    firmware,
-    fw_config,
-    prog_settings,
-    prog_rules,
-    devPORT,
-    log,
-):
-    """
-    bootloader, partitions, boot_app0, firmware:
-        Full paths to binary files.
+    if len(sys.argv) < 3:
+        print("Usage:")
+        print("  flasher.py <programmer_settings.json> <firmware_folder>")
+        sys.exit(1)
 
-    fw_config:
-        Dict from firmware/vX.Y/config.json
+    programmer_settings_path = sys.argv[1]
+    firmware_folder = sys.argv[2]
 
-    prog_settings:
-        Dict from programmer/settings_*.json
+    print(f"[INFO] Loading programmer settings: {programmer_settings_path}")
+    settings = load_json(programmer_settings_path)
+    validate_settings(settings)
 
-    prog_rules:
-        Dict from programmer/rules_*.json
+    chip = settings["chip"]
+    print(f"[INFO] Target chip: {chip}")
 
-    devPORT:
-        e.g. "ttyACM0" (without /dev/)
+    # PSRAM info
+    psram = settings["memory"]["psram"]
+    if psram["supported"]:
+        print(f"[INFO] PSRAM: {psram['type']} @ {psram.get('speed', 'N/A')}")
+    else:
+        print("[INFO] PSRAM: Not supported")
 
-    log:
-        Function(msg) -> None
-    """
+    # ERASE FLASH
+    if settings["erase"]["enabled"]:
+        print_header("ERASE FLASH")
+        erase_cmd = build_erase_cmd(settings)
+        run_esptool(erase_cmd)
+    else:
+        print("[INFO] Erase disabled in settings")
 
-    devPORT = "/dev/" + devPORT
+    # WRITE FLASH
+    print_header("WRITE FLASH")
+    write_cmd = build_write_cmd(settings, firmware_folder)
+    run_esptool(write_cmd)
 
-    # LED: flashing state
-    apply_led_behavior(prog_settings, "flashing")
-    log(f"Starting flash on {devPORT}")
-    log(f"Bootloader: {bootloader}")
-    log(f"Partitions: {partitions}")
-    log(f"Boot_app0: {boot_app0}")
-    log(f"Firmware: {firmware}")
+    print_header("FLASHING COMPLETE")
+    print("[SUCCESS] Device flashed successfully!")
 
-    # Prechecks based on programmer rules
-    if not prechecks_ok(prog_rules, log):
-        apply_led_behavior(prog_settings, "failure")
-        return False
 
-    # Build esptool command
-    cmd = build_esptool_cmd(bootloader, partitions, boot_app0, firmware, fw_config, devPORT)
-    log(f"Esptool command: {cmd}")
-
-    try:
-        esptool.main(cmd)
-        apply_led_behavior(prog_settings, "success")
-        log("Flash SUCCESS")
-        return True
-
-    except Exception as e:
-        apply_led_behavior(prog_settings, "failure")
-        log(f"Flash FAILED: {e}")
-        return False
+if __name__ == "__main__":
+    main()
