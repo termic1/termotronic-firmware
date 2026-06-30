@@ -45,13 +45,16 @@ function loadStats() {
             };
 
             if (monthChart) {
-                monthChart.data = monthData;
-                monthChart.update();
+                monthChart.data.datasets[0].data[0] = parseInt(m.po);
+                monthChart.data.datasets[0].data[1] = parseInt(m.ne);
+                monthChart.update('none');   // no animation
+
             } else {
                 monthChart = new Chart(monthCtx, {
                     type: "bar",
                     data: monthData,
                     options: {
+                        animation: false,
                         responsive: true,
                         plugins: {
                             legend: { display: false }
