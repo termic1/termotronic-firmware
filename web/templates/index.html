@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Termotronic Programmer</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -36,10 +37,13 @@
 
         <h3>Current Month</h3>
         <div id="monthStatsBox"></div>
+        <canvas id="monthChart" width="400" height="200"></canvas>
 
         <h3>Per-Version Lifetime</h3>
         <div id="versionStatsBox"></div>
+        <canvas id="versionChart" width="400" height="200"></canvas>
     </section>
+
 
     <section class="status">
         <h2>Status</h2>
