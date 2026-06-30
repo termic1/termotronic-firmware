@@ -203,6 +203,16 @@ function loadStats() {
         });
 }
 
+function updateCharts() {
+    const poPoints = eventPoints.filter(e => e.type === "PO");
+    const nePoints = eventPoints.filter(e => e.type === "NE");
+
+    monthChart.data.labels = poPoints.map(e => new Date(e.ts * 1000).toLocaleTimeString());
+    monthChart.data.datasets[0].data = poPoints.map(() => 1);
+
+    monthChart.update();
+}
+
 evt.onmessage = function(e) {
     const msg = e.data;
 
