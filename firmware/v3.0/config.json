@@ -9,7 +9,12 @@
         "flash_freq": "80m",
         "flash_size": "4MB"
     },
-
+    "gpio": {
+        "led_green": 13,
+        "led_red": 14,
+        "led_blue": 15
+    },
+    
     "programmer_profiles": {
         "settings": "programmer/settings_A.json",
         "rules": "programmer/rules_A.json"
