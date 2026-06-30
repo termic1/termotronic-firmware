@@ -1,3 +1,101 @@
+let monthChart = null;
+let versionChart = null;
+
+function loadStats() {
+    fetch("/stats")
+        .then(r => r.json())
+        .then(data => {
+            // Month stats (text)
+            const m = data.current_month;
+            document.getElementById("monthStatsBox").innerHTML =
+                `Month: ${m.month.toUpperCase()}<br>
+                 Success (PO): ${m.po}<br>
+                 Failures (NE): ${m.ne}`;
+
+            // Per-version stats (text)
+            const vs = data.versions;
+            let html = "<table><tr><th>Version</th><th>PO</th><th>NE</th></tr>";
+            const versionLabels = [];
+            const versionPO = [];
+            const versionNE = [];
+
+            for (const v in vs) {
+                html += `<tr>
+                            <td>${v}</td>
+                            <td>${vs[v].po}</td>
+                            <td>${vs[v].ne}</td>
+                         </tr>`;
+                versionLabels.push(v);
+                versionPO.push(vs[v].po);
+                versionNE.push(vs[v].ne);
+            }
+            html += "</table>";
+            document.getElementById("versionStatsBox").innerHTML = html;
+
+            // Month chart (PO vs NE)
+            const monthCtx = document.getElementById("monthChart").getContext("2d");
+            const monthData = {
+                labels: ["PO", "NE"],
+                datasets: [{
+                    label: `Month ${m.month.toUpperCase()}`,
+                    data: [parseInt(m.po), parseInt(m.ne)],
+                    backgroundColor: ["#4caf50", "#f44336"]
+                }]
+            };
+
+            if (monthChart) {
+                monthChart.data = monthData;
+                monthChart.update();
+            } else {
+                monthChart = new Chart(monthCtx, {
+                    type: "bar",
+                    data: monthData,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            }
+
+            // Version chart (per-version PO/NE)
+            const versionCtx = document.getElementById("versionChart").getContext("2d");
+            const versionData = {
+                labels: versionLabels,
+                datasets: [
+                    {
+                        label: "PO",
+                        data: versionPO.map(x => parseInt(x)),
+                        backgroundColor: "#4caf50"
+                    },
+                    {
+                        label: "NE",
+                        data: versionNE.map(x => parseInt(x)),
+                        backgroundColor: "#f44336"
+                    }
+                ]
+            };
+
+            if (versionChart) {
+                versionChart.data = versionData;
+                versionChart.update();
+            } else {
+                versionChart = new Chart(versionCtx, {
+                    type: "bar",
+                    data: versionData,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: "top" }
+                        }
+                    }
+                });
+            }
+        });
+}
+
+
 function loadFirmwareList() {
     fetch("/firmware_list")
         .then(r => r.json())
