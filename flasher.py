@@ -44,37 +44,108 @@ def all_off():
     leds_all_off()
 
 
-def flash_device(settings_path, firmware_folder):
-    """Main flashing function used by main.py."""
+def flash_device(
+        bootloader,
+        partitions,
+        boot_app0,
+        firmware,
+        fw_config,
+        prog_settings,
+        prog_rules,
+        dev,
+        add_log
+    ):
+    """
+    Unified flashing entry point compatible with main.py (9 arguments).
+    Internally maps old-style parameters to the new JSON-driven flasher.
+    """
+
+    # Turn off all LEDs first
     leds_all_off()
 
-    settings = load_json(settings_path)
-    chip = settings["chip"]
-    print(f"[INFO] Flashing chip: {chip}")
+    chip = prog_settings["chip"]
+    add_log(f"Flashing device on {dev} using chip profile: {chip}")
 
-    # ERASE
-    if settings["erase"]["enabled"]:
+    # ---------------------------------------------------------
+    # ERASE FLASH (if enabled in programmer settings)
+    # ---------------------------------------------------------
+    if prog_settings["erase"]["enabled"]:
         try:
             led_on(LED_GREEN)
-            erase_cmd = build_erase_cmd(settings)
+            add_log("Erasing flash...")
+
+            erase_cmd = [
+                "--chip", chip,
+                "erase_flash"
+            ]
+
             run_esptool(erase_cmd)
-        except Exception:
+
+        except Exception as e:
             led_off(LED_GREEN)
             led_on(LED_RED)
+            add_log(f"Erase failed: {e}")
             return False
 
-    # WRITE
+    # ---------------------------------------------------------
+    # WRITE FLASH
+    # ---------------------------------------------------------
     try:
-        write_cmd = build_write_cmd(settings, firmware_folder)
+        add_log("Writing flash...")
+
+        flash = prog_settings["flash"]
+
+        write_cmd = [
+            "--chip", chip,
+            "--baud", str(flash["baud"]),
+            "--flash_mode", flash["mode"],
+            "--flash_freq", flash["freq"],
+            "--flash_size", flash["size"],
+            "write_flash",
+            "-z"
+        ]
+
+        # Build write layout from programmer settings
+        for entry in prog_settings["write_layout"]:
+            address = entry["address"]
+
+            # Map JSON file names to actual paths passed by main.py
+            if entry["file"] == "bootloader.bin":
+                file_path = bootloader
+            elif entry["file"] == "partitions.bin":
+                file_path = partitions
+            elif entry["file"] == "boot_app0.bin":
+                file_path = boot_app0
+            elif entry["file"] == "firmware.bin":
+                file_path = firmware
+            else:
+                # Any extra file (like app0.bin)
+                file_path = os.path.join(os.path.dirname(firmware), entry["file"])
+
+            if not os.path.exists(file_path):
+                led_off(LED_GREEN)
+                led_on(LED_RED)
+                add_log(f"Missing file: {file_path}")
+                return False
+
+            write_cmd.append(address)
+            write_cmd.append(file_path)
+
         run_esptool(write_cmd)
-    except Exception:
+
+    except Exception as e:
         led_off(LED_GREEN)
         led_on(LED_RED)
+        add_log(f"Flash failed: {e}")
         return False
 
+    # ---------------------------------------------------------
     # SUCCESS
+    # ---------------------------------------------------------
     led_off(LED_GREEN)
     led_on(LED_BLUE)
+    add_log("Flash SUCCESS")
+
     return True
 
 
