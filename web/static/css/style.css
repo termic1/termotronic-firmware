@@ -28,6 +28,10 @@ h2 {
     margin-top: 0;
 }
 
+h3 {
+    margin-bottom: 5px;
+}
+
 .control-row {
     margin-bottom: 15px;
 }
@@ -53,4 +57,20 @@ button:hover {
     overflow-y: scroll;
     font-family: monospace;
     border-radius: 6px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+table th, table td {
+    border: 1px solid #ccc;
+    padding: 6px;
+    text-align: center;
+}
+
+table th {
+    background: #e0e0e0;
 }
