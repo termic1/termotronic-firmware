@@ -222,11 +222,11 @@ def monitor_loop():
                 )
 
                 if ok:
-                    datos["CURRENT_MONTH_PO"] = str(int(datos["CURRENT_MONTH_PO"]) + 1)
-                    add_log("Flash SUCCESS":{time,time()]")
+                    datos["CURRENT_MONTH_PO"] = str(int(datos["CURRENT_MONTH_P) + 1)
+                    add_log("Flash SUCCESS")
                 else:
                     datos["CURRENT_MONTH_NE"] = str(int(datos["CURRENT_MONTH_NE"]) + 1)
-                    add_log("Flash FAILED":{time,time()]")
+                    add_log("Flash FAILED")
 
                 save_state(datos, cuenta)
 
