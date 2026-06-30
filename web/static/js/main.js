@@ -110,6 +110,12 @@ function loadFirmwareList() {
             });
         });
 }
+function addEventTimestamp(type, ts) {
+    const box = document.getElementById("eventTimestamps");
+    const entry = document.createElement("div");
+    entry.textContent = `${type}:${ts}`;
+    box.appendChild(entry);
+}
 
 function setFirmware() {
     const fw = document.getElementById("firmwareSelect").value;
