@@ -40,10 +40,6 @@ live_log = []
 def add_log(msg):
     print(msg)
     live_log.append(msg)
-    
-def all_off():
-    leds_all_off()
-
 
 # ============================================================
 # Flask Web Server
