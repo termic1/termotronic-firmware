@@ -1,0 +1,51 @@
+{
+  "environment": {
+    "min_voltage": 4.5,
+    "max_voltage": 5.2,
+    "min_temperature": 0,
+    "max_temperature": 60,
+    "require_stable_power": true,
+    "require_stable_usb": true
+  },
+
+  "jig": {
+    "require_jig": true,
+    "jig_gpio_pin": 24,
+    "jig_detect_level": 1,
+    "jig_timeout_ms": 500
+  },
+
+  "usb": {
+    "require_device_reset": true,
+    "wait_after_connect_ms": 300,
+    "wait_after_disconnect_ms": 200,
+    "max_usb_retries": 3
+  },
+
+  "retry": {
+    "max_flash_retries": 2,
+    "retry_delay_ms": 500,
+    "retry_on_usb_error": true,
+    "retry_on_esptool_error": true
+  },
+
+  "safety": {
+    "block_if_voltage_low": true,
+    "block_if_temperature_high": true,
+    "block_if_jig_missing": true,
+    "block_if_usb_unstable": true
+  },
+
+  "logging": {
+    "log_prechecks": true,
+    "log_environment": true,
+    "log_jig_status": true,
+    "log_usb_status": true,
+    "log_retry_events": true
+  },
+
+  "metadata": {
+    "profile": "rules_A",
+    "description": "Default programmer rule profile"
+  }
+}
