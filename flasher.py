@@ -1,3 +1,5 @@
+# can be run as python3 flasher.py programmer/settings_A.json firmware/v1.0
+#also by calling flash_device()
 #!/usr/bin/env python3
 import os
 import sys
@@ -33,6 +35,47 @@ def leds_all_off():
     led_off(LED_RED)
     led_off(LED_GREEN)
     led_off(LED_BLUE)
+# ---------------------------------------------------------
+# PUBLIC API FOR main.py
+# ---------------------------------------------------------
+
+def all_off():
+    """Turn off all LEDs (used by main.py)."""
+    leds_all_off()
+
+
+def flash_device(settings_path, firmware_folder):
+    """Main flashing function used by main.py."""
+    leds_all_off()
+
+    settings = load_json(settings_path)
+    chip = settings["chip"]
+    print(f"[INFO] Flashing chip: {chip}")
+
+    # ERASE
+    if settings["erase"]["enabled"]:
+        try:
+            led_on(LED_GREEN)
+            erase_cmd = build_erase_cmd(settings)
+            run_esptool(erase_cmd)
+        except Exception:
+            led_off(LED_GREEN)
+            led_on(LED_RED)
+            return False
+
+    # WRITE
+    try:
+        write_cmd = build_write_cmd(settings, firmware_folder)
+        run_esptool(write_cmd)
+    except Exception:
+        led_off(LED_GREEN)
+        led_on(LED_RED)
+        return False
+
+    # SUCCESS
+    led_off(LED_GREEN)
+    led_on(LED_BLUE)
+    return True
 
 
 # ---------------------------------------------------------
