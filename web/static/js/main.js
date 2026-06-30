@@ -50,7 +50,44 @@ function pollStatus() {
         });
 }
 
+function loadActiveFirmware() {
+    fetch("/active_firmware")
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById("activeFirmwareBox").textContent =
+                "Current firmware: " + data.active;
+        });
+}
+
+function loadStats() {
+    fetch("/stats")
+        .then(r => r.json())
+        .then(data => {
+            // Month stats
+            const m = data.current_month;
+            document.getElementById("monthStatsBox").innerHTML =
+                `Month: ${m.month.toUpperCase()}<br>
+                 Success (PO): ${m.po}<br>
+                 Failures (NE): ${m.ne}`;
+
+            // Per-version stats
+            const vs = data.versions;
+            let html = "<table><tr><th>Version</th><th>PO</th><th>NE</th></tr>";
+            for (const v in vs) {
+                html += `<tr>
+                            <td>${v}</td>
+                            <td>${vs[v].po}</td>
+                            <td>${vs[v].ne}</td>
+                         </tr>`;
+            }
+            html += "</table>";
+            document.getElementById("versionStatsBox").innerHTML = html;
+        });
+}
+
 setInterval(pollStatus, 1000);
+setInterval(loadActiveFirmware, 1000);
+setInterval(loadStats, 2000);
 
 loadFirmwareList();
 startLogStream();
