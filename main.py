@@ -222,7 +222,7 @@ def monitor_loop():
                 )
 
                 if ok:
-                    datos["CURRENT_MONTH_PO"] = str(int(datos["CURRENT_MONTH_P"]) + 1)
+                    datos["CURRENT_MONTH_PO"] = str(int(datos["CURRENT_MONTH_PO"]) + 1)
                     add_log("Flash SUCCESS")
                 else:
                     datos["CURRENT_MONTH_NE"] = str(int(datos["CURRENT_MONTH_NE"]) + 1)
