@@ -1,43 +1,35 @@
 {
-  "gpio": {
-    "led_red": 13,
-    "led_green": 15,
-    "led_blue": 16,
+    "chip": "esp32c3",
 
-    "reset_pin": 5,
-    "boot_pin": 6,
-    "power_enable": 23
-  },
+    "erase": {
+        "enabled": true
+    },
 
-  "timing": {
-    "reset_pulse_ms": 120,
-    "boot_hold_ms": 50,
-    "power_on_delay_ms": 300,
-    "post_flash_delay_ms": 500
-  },
+    "flash": {
+        "baud": 921600,
+        "mode": "dio",
+        "freq": "40m",
+        "size": "4MB"
+    },
 
-  "serial": {
-    "default_baud": 921600,
-    "open_timeout_ms": 2000,
-    "retry_count": 2
-  },
+    "memory": {
+        "psram": {
+            "supported": false,
+            "type": "none",
+            "speed": "none",
+            "vendor": "none"
+        }
+    },
 
-  "power": {
-    "auto_power_on": true,
-    "auto_power_off": true,
-    "power_off_delay_ms": 200
-  },
+    "write_layout": [
+        { "address": "0x0",      "file": "bootloader.bin" },
+        { "address": "0x8000",   "file": "partitions.bin" },
+        { "address": "0xe000",   "file": "boot_app0.bin" },
+        { "address": "0x10000",  "file": "firmware.bin" }
+    ],
 
-  "behavior": {
-    "led_success": "blue",
-    "led_failure": "red",
-    "led_flashing": "green",
-    "require_stable_usb": true
-  },
-
-  "metadata": {
-    "profile": "settings_A",
-    "description": "Default programmer hardware settings"
-  }
+    "reset": {
+        "before": "default_reset",
+        "after": "hard_reset"
+    }
 }
-
