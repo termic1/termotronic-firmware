@@ -9,7 +9,7 @@
 <body>
     <header>
         <h1>Termotronic Programmer</h1>
-        <p class="subtitle">ESP32‑C3 Manufacturing Flasher</p>
+        <p class="subtitle">ESP Manufacturing Flasher</p>
     </header>
 
     <section class="controls">
@@ -24,6 +24,21 @@
         <div class="control-row">
             <button onclick="syncRepo()">Sync Repository</button>
         </div>
+    </section>
+
+    <section class="active-fw">
+        <h2>Active Firmware</h2>
+        <div id="activeFirmwareBox">Loading...</div>
+    </section>
+
+    <section class="stats">
+        <h2>Statistics</h2>
+
+        <h3>Current Month</h3>
+        <div id="monthStatsBox"></div>
+
+        <h3>Per-Version Lifetime</h3>
+        <div id="versionStatsBox"></div>
     </section>
 
     <section class="status">
