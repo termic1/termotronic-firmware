@@ -1,5 +1,6 @@
 let monthChart = null;
 let versionChart = null;
+let eventPoints = [];
 
 function loadStats() {
     fetch("/stats")
@@ -115,6 +116,8 @@ function addEventTimestamp(type, ts) {
     const entry = document.createElement("div");
     entry.textContent = `${type}:${ts}`;
     box.appendChild(entry);
+
+    eventPoints.push({ type, ts });
 }
 
 if (msg.startsWith("PO:")) {
@@ -199,6 +202,26 @@ function loadStats() {
             document.getElementById("versionStatsBox").innerHTML = html;
         });
 }
+
+evt.onmessage = function(e) {
+    const msg = e.data;
+
+    // Append to log box
+    logBox.innerHTML += msg + "<br>";
+    logBox.scrollTop = logBox.scrollHeight;
+
+    // Detect PO (Success)
+    if (msg.includes("Flash SUCCESS")) {
+        const ts = Date.now() / 1000; // seconds
+        addEventTimestamp("PO", ts);
+    }
+
+    // Detect NE (Failure)
+    if (msg.includes("Flash FAILED")) {
+        const ts = Date.now() / 1000;
+        addEventTimestamp("NE", ts);
+    }
+};
 
 setInterval(pollStatus, 1000);
 setInterval(loadActiveFirmware, 1000);
