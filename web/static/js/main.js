@@ -120,17 +120,6 @@ function addEventTimestamp(type, ts) {
     eventPoints.push({ type, ts });
 }
 
-if (msg.startsWith("PO:")) {
-    const ts = parseFloat(msg.split(":")[1]);
-    addEventTimestamp("PO", ts);
-}
-
-if (msg.startsWith("NE:")) {
-    const ts = parseFloat(msg.split(":")[1]);
-    addEventTimestamp("NE", ts);
-}
-
-
 function setFirmware() {
     const fw = document.getElementById("firmwareSelect").value;
     fetch(`/set_firmware/${fw}`)
