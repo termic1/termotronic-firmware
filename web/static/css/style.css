@@ -74,3 +74,8 @@ table th, table td {
 table th {
     background: #e0e0e0;
 }
+
+canvas {
+    margin-top: 10px;
+}
+
