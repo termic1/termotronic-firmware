@@ -107,4 +107,60 @@ def build_write_cmd(settings, firmware_folder):
 # MAIN FLASHER
 # ---------------------------------------------------------
 def main():
-    print("\
+    print("\n=== THERMOHEAT UNIVERSAL FLASHER ===\n")
+
+    if len(sys.argv) < 3:
+        print("Usage:")
+        print("  flasher.py <programmer_settings.json> <firmware_folder>")
+        sys.exit(1)
+
+    programmer_settings_path = sys.argv[1]
+    firmware_folder = sys.argv[2]
+
+    # Load programmer settings (chip-specific)
+    settings = load_json(programmer_settings_path)
+
+    # Turn off all LEDs before starting
+    leds_all_off()
+
+    chip = settings["chip"]
+    print(f"[INFO] Target chip: {chip}")
+
+    # ---------------------------------------------------------
+    # ERASE FLASH
+    # ---------------------------------------------------------
+    if settings["erase"]["enabled"]:
+        print("[INFO] Erasing flash...")
+        try:
+            led_on(LED_GREEN)  # green = working
+            erase_cmd = build_erase_cmd(settings)
+            run_esptool(erase_cmd)
+        except Exception:
+            led_off(LED_GREEN)
+            led_on(LED_RED)  # red = error
+            sys.exit(1)
+
+    # ---------------------------------------------------------
+    # WRITE FLASH
+    # ---------------------------------------------------------
+    print("[INFO] Writing flash...")
+    try:
+        write_cmd = build_write_cmd(settings, firmware_folder)
+        run_esptool(write_cmd)
+    except Exception:
+        led_off(LED_GREEN)
+        led_on(LED_RED)  # red = error
+        sys.exit(1)
+
+    # ---------------------------------------------------------
+    # SUCCESS
+    # ---------------------------------------------------------
+    led_off(LED_GREEN)
+    led_on(LED_BLUE)  # blue = success
+
+    print("\n=== FLASHING COMPLETE ===")
+    print("[SUCCESS] Device flashed successfully!")
+
+
+if __name__ == "__main__":
+    main()
