@@ -82,6 +82,24 @@ def firmware_list():
     manifest = load_manifest()
     return jsonify(list(manifest["versions"].keys()))
 
+@app.route("/active_firmware")
+def active_firmware():
+    datos, _ = load_state()
+    return jsonify({"active": datos["CURRENT_FIRMWARE"]})
+
+@app.route("/stats")
+def stats():
+    datos, cuenta = load_state()
+    return jsonify({
+        "current_month": {
+            "month": datos["CURRENT_MONTH"],
+            "po": datos["CURRENT_MONTH_PO"],
+            "ne": datos["CURRENT_MONTH_NE"]
+        },
+        "versions": datos.get("versions", {}),
+        "history": cuenta
+    })
+
 @app.route("/set_firmware/<version>")
 def set_firmware(version):
     datos, cuenta = load_state()
@@ -140,19 +158,19 @@ def diff(old, new):
 
 
 def monitor_loop():
-    datos, cuenta = load_state()
     old_usb = get_usb()
     old_dev = get_dev()
-    last_month = datos["CURRENT_MONTH"]
 
     while True:
         time.sleep(1)
 
+        # Reload state every loop so UI changes take effect
+        datos, cuenta = load_state()
+
         # Month rotation
         current_month = date.today().strftime("%b").lower()
-        if current_month != last_month:
+        if current_month != datos["CURRENT_MONTH"]:
             rotate_month(datos, cuenta)
-            last_month = datos["CURRENT_MONTH"]
 
         usb_now = get_usb()
         dev_now = get_dev()
