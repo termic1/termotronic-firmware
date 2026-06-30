@@ -1,0 +1,44 @@
+{
+    "workflow": {
+        "steps": [
+            "detect_jig",
+            "power_on_device",
+            "enter_bootloader",
+            "flash_device",
+            "verify_flash",
+            "power_off_device"
+        ]
+    },
+
+    "gpio": {
+        "led_status": 2,
+        "led_error": 3,
+        "button_start": 4,
+        "jig_detect": 5,
+        "power_control": 6
+    },
+
+    "timing": {
+        "bootloader_hold_ms": 150,
+        "reset_pulse_ms": 100,
+        "power_on_delay_ms": 250,
+        "power_off_delay_ms": 150
+    },
+
+    "safety": {
+        "require_jig": true,
+        "abort_on_missing_files": true,
+        "abort_on_flash_error": true
+    },
+
+    "messages": {
+        "start": "Starting ESP32-S3 flashing sequence",
+        "detect_jig": "Detecting jig...",
+        "power_on": "Powering device...",
+        "enter_bootloader": "Entering bootloader mode...",
+        "flash": "Flashing firmware...",
+        "verify": "Verifying flash...",
+        "done": "Flashing complete",
+        "error": "Error occurred during flashing"
+    }
+}
