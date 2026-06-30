@@ -139,10 +139,25 @@ function startLogStream() {
     const evt = new EventSource("/stream");
 
     evt.onmessage = function(e) {
-        logBox.innerHTML += e.data + "<br>";
+        const msg = e.data;
+
+        logBox.innerHTML += msg + "<br>";
         logBox.scrollTop = logBox.scrollHeight;
+
+        // Detect PO (Success)
+        if (msg.includes("Flash SUCCESS")) {
+            const ts = Date.now() / 1000;
+            addEventTimestamp("PO", ts);
+        }
+
+        // Detect NE (Failure)
+        if (msg.includes("Flash FAILED")) {
+            const ts = Date.now() / 1000;
+            addEventTimestamp("NE", ts);
+        }
     };
 }
+
 
 function pollStatus() {
     fetch("/live")
@@ -166,31 +181,7 @@ function loadActiveFirmware() {
         });
 }
 
-function loadStats() {
-    fetch("/stats")
-        .then(r => r.json())
-        .then(data => {
-            // Month stats
-            const m = data.current_month;
-            document.getElementById("monthStatsBox").innerHTML =
-                `Month: ${m.month.toUpperCase()}<br>
-                 Success (PO): ${m.po}<br>
-                 Failures (NE): ${m.ne}`;
 
-            // Per-version stats
-            const vs = data.versions;
-            let html = "<table><tr><th>Version</th><th>PO</th><th>NE</th></tr>";
-            for (const v in vs) {
-                html += `<tr>
-                            <td>${v}</td>
-                            <td>${vs[v].po}</td>
-                            <td>${vs[v].ne}</td>
-                         </tr>`;
-            }
-            html += "</table>";
-            document.getElementById("versionStatsBox").innerHTML = html;
-        });
-}
 
 function updateCharts() {
     const poPoints = eventPoints.filter(e => e.type === "PO");
@@ -202,25 +193,6 @@ function updateCharts() {
     monthChart.update();
 }
 
-evt.onmessage = function(e) {
-    const msg = e.data;
-
-    // Append to log box
-    logBox.innerHTML += msg + "<br>";
-    logBox.scrollTop = logBox.scrollHeight;
-
-    // Detect PO (Success)
-    if (msg.includes("Flash SUCCESS")) {
-        const ts = Date.now() / 1000; // seconds
-        addEventTimestamp("PO", ts);
-    }
-
-    // Detect NE (Failure)
-    if (msg.includes("Flash FAILED")) {
-        const ts = Date.now() / 1000;
-        addEventTimestamp("NE", ts);
-    }
-};
 
 setInterval(pollStatus, 1000);
 setInterval(loadActiveFirmware, 1000);
