@@ -5,7 +5,7 @@
         "baud": 921600,
         "erase": "yes",
         "offset": "0x10000",
-        "flash_mode": "QIO",
+        "flash_mode": "qio",
         "flash_freq": "80m",
         "flash_size": "4MB"
     },
