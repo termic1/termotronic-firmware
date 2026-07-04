@@ -1,16 +1,6 @@
 {
     "chip": "esp32c3",
 
-    "flash": {
-        "baud": 921600,
-        "erase": "yes",
-        "offset": "0x10000",
-        "flash_mode": "qio",
-        "flash_freq": "80m",
-        "flash_size": "4MB"
-    },
-
-
     "programmer_profiles": {
         "settings": "programmer/settings_A.json",
         "rules": "programmer/rules_A.json"
