@@ -7,7 +7,7 @@
 
     "flash": {
         "baud": 921600,
-        "mode": "QIO",
+        "mode": "qio",
         "freq": "40m",
         "size": "4MB"
     },
