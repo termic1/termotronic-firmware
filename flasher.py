@@ -7,6 +7,7 @@ import json
 import traceback
 import esptool
 import subprocess
+import time
 
 # ---------------------------------------------------------
 # IMPORT LED PINS FROM config.py (single source of truth)
