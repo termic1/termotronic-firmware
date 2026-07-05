@@ -22,6 +22,14 @@ except Exception as e:
 # ---------------------------------------------------------
 # GPIO Helpers
 # ---------------------------------------------------------
+def iniport(pin):
+    argu="gpio mode "+pin+" out"
+    respu=subprocess.call(argu,stdout=True,stderr=True,text=True,shell=True)
+def inileds():
+    iniport(LED_RED)
+    iniport(LED_GREEN)
+    iniport(LED_BLUE)
+    
 def gpio_write(pin, value):
     subprocess.call(f"gpio write {pin} {value}", shell=True)
 
@@ -227,7 +235,7 @@ def main():
         print("Usage:")
         print("  flasher.py <programmer_settings.json> <firmware_folder>")
         sys.exit(1)
-
+    inileds() # initialize ports
     programmer_settings_path = sys.argv[1]
     firmware_folder = sys.argv[2]
 
