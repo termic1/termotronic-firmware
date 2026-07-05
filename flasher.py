@@ -23,8 +23,9 @@ except Exception as e:
 # GPIO Helpers
 # ---------------------------------------------------------
 def iniport(pin):
-    argu="gpio mode "+pin+" out"
+    argu="gpio mode "+str(pin)+" out"
     respu=subprocess.call(argu,stdout=True,stderr=True,text=True,shell=True)
+    
 def inileds():
     iniport(LED_RED)
     iniport(LED_GREEN)
@@ -80,6 +81,7 @@ def flash_device(
     if prog_settings["erase"]["enabled"]:
         try:
             led_on(LED_GREEN)
+            time.sleep(0.2)
             add_log("Erasing flash...")
 
             erase_cmd = [
