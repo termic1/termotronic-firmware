@@ -8,7 +8,7 @@ from datetime import date
 from flask import Flask, jsonify, render_template, Response
 from zeroconf import ServiceInfo, Zeroconf
 
-from flasher import flash_device, all_off
+from flasher import flash_device, all_off, inileds
 from storage import load_state, save_state, rotate_month
 from config import LED_RED, LED_GREEN, LED_BLUE
 
@@ -159,7 +159,8 @@ def diff(old, new):
 def monitor_loop():
     old_usb = get_usb()
     old_dev = get_dev()
-
+    inileds() # initialize ports
+    
     while True:
         time.sleep(1)
 
