@@ -53,6 +53,31 @@ def all_off():
     """Turn off all LEDs (used by main.py)."""
     leds_all_off()
 
+    
+def wait_for_port(original_port, timeout=5.0):
+    """
+    Waits for an ESP32 CDC ACM port to appear.
+    Handles renumbering (ttyACM0 -> ttyACM1).
+    Returns the detected port path or None.
+    """
+
+    base = os.path.basename(original_port)  # e.g. "ttyACM0"
+    prefix = base[:-1]                      # "ttyACM"
+    start = time.time()
+
+    while time.time() - start < timeout:
+        ports = [p for p in os.listdir("/dev") if p.startswith(prefix)]
+        if ports:
+            # Prefer original port if still present
+            if base in ports:
+                return f"/dev/{base}"
+            else:
+                # Port renumbered (common on ESP32-C3)
+                return f"/dev/{ports[0]}"
+        time.sleep(0.1)
+
+    return None
+
 
 def flash_device(
         bootloader,
@@ -65,6 +90,8 @@ def flash_device(
         dev,
         add_log
     ):
+    
+
     """
     Unified flashing entry point compatible with main.py (9 arguments).
     Internally maps old-style parameters to the new JSON-driven flasher.
@@ -72,21 +99,32 @@ def flash_device(
 
     # Turn off all LEDs first
     leds_all_off()
+    
+    add_log("Waiting for ESP32 port...")    
+    port = wait_for_port(dev, timeout=5.0)
+    if not port:
+        add_log("ERROR: ESP32 port did not appear")
+        return False
 
+    dev = port
+    add_log(f"Using port: {dev}")
+  
     chip = prog_settings["chip"]
     add_log(f"Flashing device on {dev} using chip profile: {chip}")
-
+    flash = prog_settings["flash"]
     # ---------------------------------------------------------
     # ERASE FLASH (if enabled in programmer settings)
     # ---------------------------------------------------------
     if prog_settings["erase"]["enabled"]:
         try:
             led_on(LED_GREEN)
-            time.sleep(0.2)
+            time.sleep(3)
             add_log("Erasing flash...")
 
             erase_cmd = [
                 "--chip", chip,
+                "--port", dev,
+                "--baud", str(flash["baud"]),
                 "erase_flash"
             ]
 
@@ -104,15 +142,14 @@ def flash_device(
     try:
         add_log("Writing flash...")
 
-        flash = prog_settings["flash"]
-
         write_cmd = [
             "--chip", chip,
+            "--port", dev,
             "--baud", str(flash["baud"]),
+            "write_flash",
             "--flash_mode", flash["mode"],
             "--flash_freq", flash["freq"],
             "--flash_size", flash["size"],
-            "write_flash",
             "-z"
         ]
 
@@ -289,3 +326,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
